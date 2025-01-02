@@ -1,0 +1,35 @@
+name: release
+on:
+  - push
+  - workflow_dispatch
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Sing Box
+        uses: nguyenngoclongdev/release-downloader@v0.0.1
+        with:
+          repository: 'SagerNet/sing-box'
+          latest: true
+          # Supports wildcard pattern (eg: '*', '*.deb', '*.zip' etc..)
+          fileName: 'sing-box-*-linux-amd64.tar.gz'
+          tarBall: true
+          out-file-path: 'resource'
+          extract: true
+      - name: Fetch Source
+        uses: actions/checkout@v4
+        with:
+          repository: 'AdguardTeam/AdGuardSDNSFilter'
+          ref: 'gh-pages'
+          path: 'source'
+      - name: Run Script
+        shell: bash
+        run: |
+          mv ./resource/sing-box-*-linux-amd64/sing-box ./sing-box
+          chmod +x ./sing-box
+          set +e
+          find "./source" -type f -name "*.txt" | while read -r file; do
+            ./sing-box rule-set convert --type adguard --output "${file%.txt}.srs" "$file"
+          done
+          set -e
+          ls ./source/Filters
